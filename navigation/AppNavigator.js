@@ -26,12 +26,16 @@ const getScreenOptions = (navOpts) => {
   }
 }
 const Tabs = createBottomTabNavigator();
-const TabNav = () =>
+const TabNav = ({route} ) =>
    {
+
+    const email  = route.params.email;
     return (
       
       <Tabs.Navigator screenOptions={getScreenOptions}>
-        <Tabs.Screen name="Home" component={Home} />
+        <Tabs.Screen name="Home" component={Home} 
+          initialParams={{ email: email}}
+          />
         <Tabs.Screen name="Add Habit" component={AddEdit} />
         <Tabs.Screen name="Statistics Screen" component={StatisticsScreen}/>
         

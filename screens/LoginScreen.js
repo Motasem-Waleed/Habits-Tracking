@@ -18,7 +18,8 @@ const Login = ({ navigation }) => {
     loginSchema
       .validate(form, { abortEarly: false })
       .then(() => {
-        navigation.replace("Tabs");
+        navigation.replace("Tabs" , {email: form.email});
+        
       })
       .catch((error) => {
         if (error.inner) {
