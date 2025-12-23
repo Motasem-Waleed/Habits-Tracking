@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Button } from "react-native";
+
 import { Input } from "react-native-elements";
 import loginSchema from "../components/LoginSchema";
+
+import { useEffect } from "react";
+import { run, getAll } from "../utils/storage";
+
 
 const Login = ({ navigation }) => {
   const [form, setForm] = useState({
@@ -58,12 +62,10 @@ const Login = ({ navigation }) => {
           inputContainerStyle={styles.inputBox}
         />
 
-        <View style={styles.Button}>
-          <Button title="Login" 
-          onPress={loginErrors}
-          color={"#ffffff"}
-           />
-        </View>
+        <TouchableOpacity style={styles.loginBtn} onPress={loginErrors}>
+          <Text style={styles.loginBtnText}>Login</Text>
+        </TouchableOpacity>
+
 
         <TouchableOpacity style={styles.forgot}>
           <Text style={styles.forgotText}>Forget Password ?</Text>
@@ -116,12 +118,19 @@ const styles = StyleSheet.create({
   forgotText: {
     color: "#3F51B5",
   },
-  Button :{
-    
-    width:"95%", 
-    backgroundColor :"#5E60CE",
-     marginTop: 10,
-     marginLeft:10,
-     borderRadius: 8,
-  }
+  loginBtn: {
+  width: "95%",
+  backgroundColor: "#5E60CE",
+  marginTop: 10,
+  borderRadius: 8,
+  paddingVertical: 14,
+  alignItems: "center",
+  justifyContent: "center",
+},
+loginBtnText: {
+  color: "#ffffff",
+  fontWeight: "700",
+  fontSize: 16,
+},
+
 });
