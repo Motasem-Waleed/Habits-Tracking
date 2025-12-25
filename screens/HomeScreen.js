@@ -1,14 +1,43 @@
-// screens/HomeScreen.js
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
 import { getHabitsLocal } from "../services/habitService";
+import { getFirst } from "../utils/storage";
 
 const Home = ({ route, navigation }) => {
-  const email = route?.params?.email || "user@gmail.com";
-  const userId = email;
-  const name = email.split("@")[0];
+  const email = route?.params?.email || "";
+  const userId = email || "guest";
 
+  const [name, setName] = useState("Guest");
   const [habits, setHabits] = useState([]);
+
+  const handleLogout = () => {
+    // يرجّعك لصفحة Login ويمنع الرجوع بزر back
+    navigation.replace("Login");
+  };
+
+  const loadUserName = async () => {
+    try {
+      const paramName = route?.params?.name;
+      if (paramName && String(paramName).trim()) {
+        setName(String(paramName).trim());
+        return;
+      }
+
+      if (email) {
+        const user = await getFirst("SELECT name FROM users WHERE email = ?;", [
+          email.trim().toLowerCase(),
+        ]);
+        if (user?.name) {
+          setName(user.name);
+          return;
+        }
+      }
+
+      setName(email ? email.split("@")[0] : "Guest");
+    } catch (e) {
+      setName(email ? email.split("@")[0] : "Guest");
+    }
+  };
 
   const loadHabits = async () => {
     try {
@@ -20,10 +49,16 @@ const Home = ({ route, navigation }) => {
   };
 
   useEffect(() => {
-    const unsub = navigation.addListener("focus", loadHabits);
+    const unsub = navigation.addListener("focus", () => {
+      loadUserName();
+      loadHabits();
+    });
+
+    loadUserName();
     loadHabits();
+
     return unsub;
-  }, [navigation]);
+  }, [navigation, userId, email]);
 
   return (
     <View style={styles.container}>
@@ -33,7 +68,13 @@ const Home = ({ route, navigation }) => {
             <Text style={styles.welcome}>Welcome 👋</Text>
             <Text style={styles.name}>{name}</Text>
             <Text style={styles.subtitle}>How are you today? 🤍</Text>
+
+            {/* ✅ زر تسجيل الخروج */}
+            <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+              <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
           </View>
+
           <Image
             style={styles.avatar}
             source={{
@@ -82,6 +123,9 @@ const Home = ({ route, navigation }) => {
 
 export default Home;
 
+
+
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -90,6 +134,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#EEF2FF",
   },
+
+  logoutBtn: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    backgroundColor: "#E53935",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  logoutText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+
   card: {
     width: "85%",
     padding: 20,

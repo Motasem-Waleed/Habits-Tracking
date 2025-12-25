@@ -46,6 +46,16 @@ export async function initDb() {
     timestamp INTEGER NOT NULL,
     status TEXT DEFAULT 'PENDING'
   );
+  
+  CREATE TABLE IF NOT EXISTS users (
+    userId TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    createdAt INTEGER,
+    updatedAt INTEGER
+  );
+
 `);
 }
 
