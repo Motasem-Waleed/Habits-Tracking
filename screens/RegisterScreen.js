@@ -5,6 +5,9 @@ import { Input } from "react-native-elements";
 import registerSchema from "../components/RegisterSchema";
 import { run, getFirst } from "../utils/storage";
 
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../services/firebase";
+
 const RegisterScreen = ({ navigation }) => {
   const [form, setForm] = useState({
     name: "",
@@ -22,23 +25,45 @@ const RegisterScreen = ({ navigation }) => {
       .then(async () => {
         const email = form.email.trim().toLowerCase();
         const name = form.name.trim();
+        const password = form.password;
 
-        // check existing email
+        // 1) check existing email in local DB
         const existing = await getFirst("SELECT * FROM users WHERE email = ?;", [email]);
         if (existing) {
           Alert.alert("Error", "Email already registered.");
           return;
         }
 
-        const userId = email; // نفس أسلوبك في habits: userId = email
+        // 2) create account online (Firebase Auth)
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+        } catch (e) {
+          // رسائل مفيدة حسب الخطأ
+          const code = e?.code || "";
+          if (code.includes("auth/email-already-in-use")) {
+            Alert.alert("Error", "This email is already used (Firebase).");
+          } else if (code.includes("auth/invalid-email")) {
+            Alert.alert("Error", "Invalid email.");
+          } else if (code.includes("auth/weak-password")) {
+            Alert.alert("Error", "Password is too weak.");
+          } else {
+            Alert.alert("Error", e?.message || "Firebase register failed.");
+          }
+          return;
+        }
+
+        // 3) save user locally (SQLite)
+        const userId = email; // أبسط طريقة حالياً لأن مشروعك يستخدم email كـ userId
         const now = Date.now();
 
         await run(
-          "INSERT INTO users (userId, name, email, password, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?);",
-          [userId, name, email, form.password, now, now]
+          "INSERT OR REPLACE INTO users (userId, name, email, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?);"
+          [userId, name, email, now, now]
         );
 
-        navigation.replace("Tabs", { email });
+
+        // 4) go to Tabs and pass both email + name
+        navigation.replace("Tabs", { email, name });
       })
       .catch((error) => {
         if (error.inner) {

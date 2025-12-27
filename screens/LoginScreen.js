@@ -3,7 +3,10 @@ import { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Input } from "react-native-elements";
 import loginSchema from "../components/LoginSchema";
-import { getFirst } from "../utils/storage";
+
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../services/firebase";
+
 
 const LoginScreen = ({ navigation }) => {
   const [form, setForm] = useState({
@@ -20,22 +23,22 @@ const LoginScreen = ({ navigation }) => {
       .validate(form, { abortEarly: false })
       .then(async () => {
         const email = form.email.trim().toLowerCase();
+        const password = form.password;
 
-        // تحقق فعلي من قاعدة البيانات
-        const user = await getFirst(
-          "SELECT * FROM users WHERE email = ? AND password = ?;",
-          [email, form.password]
-        );
+        try {
+          await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), form.password);
 
-        if (!user) {
-          setErrors({
-            email: "",
-            password: "Wrong email or password.",
-          });
-          return;
+          navigation.replace("Tabs", { email });
+        } catch (e) {
+          // رسائل Firebase الشائعة
+          let msg = "Login failed. Try again.";
+          if (e?.code === "auth/invalid-credential") msg = "Wrong email or password.";
+          if (e?.code === "auth/invalid-email") msg = "Invalid email.";
+          if (e?.code === "auth/user-not-found") msg = "User not found.";
+          if (e?.code === "auth/wrong-password") msg = "Wrong email or password.";
+
+          setErrors({ password: msg });
         }
-
-        navigation.replace("Tabs", { email });
       })
       .catch((error) => {
         if (error.inner) {
@@ -94,6 +97,7 @@ const LoginScreen = ({ navigation }) => {
 };
 
 export default LoginScreen;
+
 
 const styles = StyleSheet.create({
   container: {

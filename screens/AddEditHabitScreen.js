@@ -35,7 +35,7 @@ export default function AddEditHabitScreen({ route, navigation }) {
       setTarget("1");
       setReminderHours("4");
     }
-  }, [habitId]);
+  }, [habitToEdit, habitId, isEdit]);
 
   const normalizeFrequency = (val) => {
     const f = (val || "daily").trim().toLowerCase();
@@ -112,7 +112,8 @@ export default function AddEditHabitScreen({ route, navigation }) {
         Alert.alert("Done", "Habit added.");
       }
 
-      navigation.navigate("Home", { email: userId });
+      // ✅ أبسط حل: رجوع للشاشة السابقة بدون مشاكل navigation
+      navigation.goBack();
     } catch (e) {
       console.log("Save habit error:", e);
       Alert.alert("Error", String(e?.message || e));
@@ -133,7 +134,9 @@ export default function AddEditHabitScreen({ route, navigation }) {
 
       await deleteHabitLocal(userId, habitId);
       Alert.alert("Done", "Habit deleted.");
-      navigation.navigate("Home", { email: userId });
+
+      // ✅ أبسط حل: رجوع للشاشة السابقة
+      navigation.goBack();
     } catch (e) {
       console.log("Delete habit error:", e);
       Alert.alert("Error", String(e?.message || e));
@@ -239,4 +242,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-

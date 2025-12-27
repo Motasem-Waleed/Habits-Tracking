@@ -1,240 +1,251 @@
 import { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native";
+
 import { getAll } from "../utils/storage";
+import { todayStr, addDaysStr } from "../utils/dateUtils";
 
-function pad2(n) {
-  return String(n).padStart(2, "0");
+function buildDateList(days) {
+  const end = todayStr();
+  const list = [];
+  for (let i = days - 1; i >= 0; i--) list.push(addDaysStr(end, -i));
+  return list;
 }
 
-function formatDateYYYYMMDD(d) {
-  const y = d.getFullYear();
-  const m = pad2(d.getMonth() + 1);
-  const day = pad2(d.getDate());
-  return `${y}-${m}-${day}`;
+function shortDateLabel(dateStr) {
+  return `${dateStr.slice(5, 7)}/${dateStr.slice(8, 10)}`;
 }
 
-function startOfDay(d) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+function SimpleBars({ data, labels, maxHeight = 120, suffix = "" }) {
+  const maxVal = Math.max(1, ...data.map((n) => Number(n) || 0));
+
+  return (
+    <View style={styles.chartWrap}>
+      <View style={styles.chartRow}>
+        {data.map((val, i) => {
+          const h = Math.round(((Number(val) || 0) / maxVal) * maxHeight);
+          return (
+            <View key={i} style={styles.barCol}>
+              <View style={[styles.bar, { height: h }]} />
+              <Text style={styles.barValue}>
+                {(Number(val) || 0) + suffix}
+              </Text>
+              <Text style={styles.barLabel}>{labels[i] || ""}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
 }
 
-function daysAgo(n) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return startOfDay(d);
-}
+export default function StatisticsScreen({ route }) {
+  const email = route?.params?.email || "";
+  const userId = route?.params?.userId || email || "guest";
 
-function calcStreak(completedDateSet) {
-  // streak = عدد الأيام المتتالية حتى اليوم (اليوم أو أمس حسب وجود تسجيل)
-  let streak = 0;
-  for (let i = 0; ; i++) {
-    const dateStr = formatDateYYYYMMDD(daysAgo(i));
-    if (completedDateSet.has(dateStr)) streak++;
-    else break;
-  }
-  return streak;
-}
-
-const StatisticsScreen = ({ route, navigation }) => {
-  // نفس فكرة userId = email (مؤقتًا)
-  const userId = route?.params?.userId || route?.params?.email || "user@gmail.com";
-
+  const [loading, setLoading] = useState(false);
   const [habits, setHabits] = useState([]);
-  const [progress, setProgress] = useState([]);
+  const [weeklySeries, setWeeklySeries] = useState([]);   // numbers (%)
+  const [monthlySeries, setMonthlySeries] = useState([]); // numbers (count)
+  
 
-  const load = async () => {
+  const [weeklyRate, setWeeklyRate] = useState(0);
+  const [monthlyRate, setMonthlyRate] = useState(0);
+  const [top3, setTop3] = useState([]);
+  const [bestStreak, setBestStreak] = useState({ days: 0, habit: null });
+
+  const last7 = useMemo(() => buildDateList(7), []);
+  const last30 = useMemo(() => buildDateList(30), []);
+  const start30 = last30[0];
+  const endToday = todayStr();
+
+  const loadStats = async () => {
+    if (!userId) return;
+    setLoading(true);
     try {
-      const habitsRows = await getAll(
-        `SELECT habitId, title, icon, frequency, target
+      const habitRows = await getAll(
+        `SELECT habitId, title, icon, target, frequency
          FROM habits
          WHERE userId=? AND deleted=0`,
         [userId]
       );
+      setHabits(habitRows);
+      const totalHabits = habitRows.length;
 
-      // آخر 30 يوم من progress
-      const from = formatDateYYYYMMDD(daysAgo(29));
-      const progressRows = await getAll(
-        `SELECT habitId, date, completed, value
+      const progress30 = await getAll(
+        `SELECT habitId, date, completed
          FROM progress
-         WHERE userId=? AND date >= ?`,
-        [userId, from]
+         WHERE userId=? AND date>=? AND date<=?`,
+        [userId, start30, endToday]
       );
 
-      setHabits(habitsRows);
-      setProgress(progressRows);
+      const completedPerDay = new Map();     // date -> count
+      const completedPerHabit = new Map();   // habitId -> count
+
+      for (const r of progress30) {
+        if (!r?.date || !r?.habitId) continue;
+        if (r.completed === 1) {
+          completedPerDay.set(r.date, (completedPerDay.get(r.date) || 0) + 1);
+          completedPerHabit.set(r.habitId, (completedPerHabit.get(r.habitId) || 0) + 1);
+        }
+      }
+
+      // weekly (%)
+      const weekPct = last7.map((d) => {
+        const done = completedPerDay.get(d) || 0;
+        return totalHabits > 0 ? Math.round((done / totalHabits) * 100) : 0;
+      });
+      setWeeklySeries(weekPct);
+
+      // monthly (count)
+      const monthCounts = last30.map((d) => completedPerDay.get(d) || 0);
+      setMonthlySeries(monthCounts);
+
+      const weekTotalDone = last7.reduce((acc, d) => acc + (completedPerDay.get(d) || 0), 0);
+      const monthTotalDone = last30.reduce((acc, d) => acc + (completedPerDay.get(d) || 0), 0);
+
+      const weekDen = totalHabits * 7;
+      const monthDen = totalHabits * 30;
+
+      setWeeklyRate(weekDen > 0 ? Math.round((weekTotalDone / weekDen) * 100) : 0);
+      setMonthlyRate(monthDen > 0 ? Math.round((monthTotalDone / monthDen) * 100) : 0);
+
+      // Top 3
+      const habitById = new Map(habitRows.map((h) => [h.habitId, h]));
+      const topArr = Array.from(completedPerHabit.entries())
+        .map(([hid, count]) => {
+          const h = habitById.get(hid);
+          return { habitId: hid, title: h?.title || "Habit", icon: h?.icon || "", count };
+        })
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3);
+      setTop3(topArr);
+
+      // Best streak (last 120 days)
+      const start120 = addDaysStr(todayStr(), -120);
+      const completed120 = await getAll(
+        `SELECT habitId, date
+         FROM progress
+         WHERE userId=? AND completed=1 AND date>=? AND date<=?`,
+        [userId, start120, endToday]
+      );
+
+      const doneSetByHabit = new Map();
+      for (const r of completed120) {
+        if (!doneSetByHabit.has(r.habitId)) doneSetByHabit.set(r.habitId, new Set());
+        doneSetByHabit.get(r.habitId).add(r.date);
+      }
+
+      let best = { days: 0, habit: null };
+      for (const h of habitRows) {
+        const set = doneSetByHabit.get(h.habitId) || new Set();
+        let streak = 0;
+        let d = todayStr();
+        while (set.has(d)) {
+          streak += 1;
+          d = addDaysStr(d, -1);
+        }
+        if (streak > best.days) best = { days: streak, habit: h };
+      }
+      setBestStreak(best);
     } catch (e) {
-      console.log("Statistics load error:", e);
+      console.log("Stats error:", e);
+      Alert.alert("Error", String(e?.message || e));
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const unsub = navigation?.addListener?.("focus", load);
-    load();
-    return unsub;
-  }, [navigation]);
+    loadStats();
+  }, [userId]);
 
-  const stats = useMemo(() => {
-    const last7Start = formatDateYYYYMMDD(daysAgo(6));
-    const last30Start = formatDateYYYYMMDD(daysAgo(29));
+  const weeklyLabels = last7.map(shortDateLabel);
 
-    const prog7 = progress.filter((p) => p.date >= last7Start);
-    const prog30 = progress.filter((p) => p.date >= last30Start);
-
-    // Completion counts per habit
-    const completedCount7 = {};
-    const completedCount30 = {};
-    const completedDatesByHabit = {};
-
-    for (const h of habits) {
-      completedCount7[h.habitId] = 0;
-      completedCount30[h.habitId] = 0;
-      completedDatesByHabit[h.habitId] = new Set();
-    }
-
-    for (const p of prog7) {
-      if (p.completed === 1) completedCount7[p.habitId] = (completedCount7[p.habitId] || 0) + 1;
-    }
-    for (const p of prog30) {
-      if (p.completed === 1) {
-        completedCount30[p.habitId] = (completedCount30[p.habitId] || 0) + 1;
-        if (!completedDatesByHabit[p.habitId]) completedDatesByHabit[p.habitId] = new Set();
-        completedDatesByHabit[p.habitId].add(p.date);
-      }
-    }
-
-    // Completion rate (أبسط تعريف): عدد السجلات المكتملة / (عدد العادات * عدد الأيام)
-    const days7 = 7;
-    const days30 = 30;
-
-    const totalPossible7 = habits.length * days7;
-    const totalPossible30 = habits.length * days30;
-
-    const totalCompleted7 = Object.values(completedCount7).reduce((a, b) => a + b, 0);
-    const totalCompleted30 = Object.values(completedCount30).reduce((a, b) => a + b, 0);
-
-    const rate7 = totalPossible7 === 0 ? 0 : Math.round((totalCompleted7 / totalPossible7) * 100);
-    const rate30 = totalPossible30 === 0 ? 0 : Math.round((totalCompleted30 / totalPossible30) * 100);
-
-    // Top 3 habits (آخر 7 أيام)
-    const top3 = [...habits]
-      .map((h) => ({
-        habitId: h.habitId,
-        title: h.title,
-        icon: h.icon || "✅",
-        count7: completedCount7[h.habitId] || 0,
-      }))
-      .sort((a, b) => b.count7 - a.count7)
-      .slice(0, 3);
-
-    // Streak لكل habit (يعتمد على الأيام المكتملة)
-    const streaks = habits.map((h) => {
-      const set = completedDatesByHabit[h.habitId] || new Set();
-      const streak = calcStreak(set);
-      return { habitId: h.habitId, title: h.title, icon: h.icon || "✅", streak };
-    });
-
-    const bestStreak = streaks.length ? Math.max(...streaks.map((s) => s.streak)) : 0;
-
-    return {
-      habitsCount: habits.length,
-      rate7,
-      rate30,
-      totalCompleted7,
-      totalCompleted30,
-      top3,
-      bestStreak,
-      streaks,
-    };
-  }, [habits, progress]);
+  // لتخفيف زحمة 30 label: نعرض كل 5 أيام فقط
+  const monthlyLabels = last30.map((d, idx) => (idx % 5 === 0 ? shortDateLabel(d) : ""));
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Statistics</Text>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Overview</Text>
-        <Text style={styles.line}>Habits: {stats.habitsCount}</Text>
-        <Text style={styles.line}>Last 7 days completion: {stats.rate7}% ({stats.totalCompleted7} done)</Text>
-        <Text style={styles.line}>Last 30 days completion: {stats.rate30}% ({stats.totalCompleted30} done)</Text>
-        <Text style={styles.line}>Best streak: {stats.bestStreak} days</Text>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 30 }}>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Statistics</Text>
+        <TouchableOpacity style={styles.refreshBtn} onPress={loadStats} disabled={loading}>
+          <Text style={styles.refreshText}>{loading ? "Loading..." : "Refresh"}</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Top 3 Habits (Last 7 days)</Text>
-        {stats.top3.length === 0 ? (
-          <Text style={styles.muted}>No data yet.</Text>
+        <Text style={styles.cardTitle}>Summary</Text>
+        <Text style={styles.line}>Total habits: {habits.length}</Text>
+        <Text style={styles.line}>Weekly completion rate: {weeklyRate}%</Text>
+        <Text style={styles.line}>Monthly completion rate: {monthlyRate}%</Text>
+        <Text style={styles.line}>
+          Best streak:{" "}
+          {bestStreak.habit
+            ? `${bestStreak.habit.icon ? bestStreak.habit.icon + " " : ""}${bestStreak.habit.title} — ${bestStreak.days} day(s)`
+            : "0"}
+        </Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Weekly Chart (last 7 days)</Text>
+        <Text style={styles.note}>Y = % of habits completed per day</Text>
+        <SimpleBars data={weeklySeries} labels={weeklyLabels} suffix="%" />
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Monthly Chart (last 30 days)</Text>
+        <Text style={styles.note}>Y = number of completed habits per day</Text>
+        <SimpleBars data={monthlySeries} labels={monthlyLabels} />
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Top 3 Habits (last 30 days)</Text>
+        {top3.length === 0 ? (
+          <Text style={styles.empty}>No completed habits yet.</Text>
         ) : (
-          stats.top3.map((h, idx) => (
-            <Text key={h.habitId} style={styles.line}>
-              {idx + 1}) {h.icon} {h.title} — {h.count7} completions
-            </Text>
+          top3.map((h, idx) => (
+            <View key={h.habitId} style={styles.topRow}>
+              <Text style={styles.topText}>
+                {idx + 1}) {h.icon ? `${h.icon} ` : ""}{h.title}
+              </Text>
+              <Text style={styles.topCount}>{h.count}</Text>
+            </View>
           ))
         )}
       </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Streaks</Text>
-        {stats.streaks.length === 0 ? (
-          <Text style={styles.muted}>No habits yet.</Text>
-        ) : (
-          stats.streaks.map((s) => (
-            <Text key={s.habitId} style={styles.line}>
-              {s.icon} {s.title} — {s.streak} days
-            </Text>
-          ))
-        )}
-      </View>
-
-      <Text style={styles.note}>
-        Note: Charts will be added next (Victory/Recharts). These numbers depend on saving progress into SQLite table "progress".
-      </Text>
     </ScrollView>
   );
-};
-
-export default StatisticsScreen;
+}
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#EEF2FF",
+  container: { flex: 1, backgroundColor: "#EEF2FF", padding: 16 },
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  title: { fontSize: 22, fontWeight: "900", color: "#111" },
+  refreshBtn: { backgroundColor: "#E0E7FF", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  refreshText: { color: "#3730A3", fontWeight: "900" },
+
+  card: { backgroundColor: "#fff", borderRadius: 18, padding: 14, marginTop: 12 },
+  cardTitle: { fontSize: 16, fontWeight: "900", color: "#111" },
+  line: { marginTop: 8, color: "#333", fontWeight: "700" },
+  note: { marginTop: 6, color: "#666", fontSize: 12 },
+
+  chartWrap: { marginTop: 12 },
+  chartRow: { flexDirection: "row", alignItems: "flex-end", gap: 6 },
+  barCol: { alignItems: "center", flex: 1 },
+  bar: { width: "100%", backgroundColor: "#4F46E5", borderTopLeftRadius: 6, borderTopRightRadius: 6 },
+  barValue: { marginTop: 6, fontSize: 10, color: "#111", fontWeight: "800" },
+  barLabel: { marginTop: 4, fontSize: 10, color: "#666" },
+
+  empty: { marginTop: 10, color: "#666" },
+
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
   },
-  container: {
-    padding: 16,
-    paddingBottom: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#3F51B5",
-    marginBottom: 12,
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#D6D6F5",
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    marginBottom: 8,
-    color: "#222",
-  },
-  line: {
-    fontSize: 14,
-    color: "#333",
-    marginBottom: 6,
-  },
-  muted: {
-    color: "#777",
-  },
-  note: {
-    marginTop: 6,
-    color: "#666",
-    fontSize: 12,
-  },
+  topText: { color: "#222", fontWeight: "800" },
+  topCount: { color: "#111", fontWeight: "900" },
 });

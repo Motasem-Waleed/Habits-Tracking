@@ -1,4 +1,3 @@
-// src/components/RegisterSchema.js
 import * as yup from "yup";
 
 const registerSchema = yup.object().shape({

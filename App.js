@@ -10,6 +10,9 @@ import TabNav from "./navigation/AppNavigator";
 import AddEditHabitScreen from "./screens/AddEditHabitScreen";
 import { initDb } from "./utils/storage";
 
+import HabitDetailsScreen from "./screens/HabitDetailsScreen";
+
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -37,6 +40,9 @@ export default function App() {
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Tabs" component={TabNav} />
         <Stack.Screen name="AddEditHabit" component={AddEditHabitScreen} />
+        <Stack.Screen name="HabitDetails" component={HabitDetailsScreen} />
+
+        
       </Stack.Navigator>
     </NavigationContainer>
   );
