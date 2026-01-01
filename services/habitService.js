@@ -19,9 +19,9 @@ export async function addHabitLocal(userId, habit) {
       habit.icon ?? "",
       habit.frequency ?? "daily",
       habit.target ?? 0,
-      habit.reminderTime ?? null,                 // حالياً أنت لا تستخدمه فعلياً، خليه null
-      habit.reminderIntervalHours ?? 0,           // مهم
-      habit.notificationId ?? null,               // مهم
+      habit.reminderTime ?? null,                
+      habit.reminderIntervalHours ?? 0,         
+      habit.notificationId ?? null,              
       now,
       now,
     ]

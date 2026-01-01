@@ -1,4 +1,4 @@
-// screens/LoginScreen.js
+
 import { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Input } from "react-native-elements";
@@ -30,7 +30,6 @@ const LoginScreen = ({ navigation }) => {
 
           navigation.replace("Tabs", { email });
         } catch (e) {
-          // رسائل Firebase الشائعة
           let msg = "Login failed. Try again.";
           if (e?.code === "auth/invalid-credential") msg = "Wrong email or password.";
           if (e?.code === "auth/invalid-email") msg = "Invalid email.";
@@ -81,9 +80,6 @@ const LoginScreen = ({ navigation }) => {
           <Text style={styles.loginBtnText}>Login</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.forgot}>
-          <Text style={styles.forgotText}>Forget Password ?</Text>
-        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.register}
@@ -129,15 +125,6 @@ const styles = StyleSheet.create({
     borderColor: "#9C89FF",
     borderRadius: 8,
     paddingHorizontal: 10,
-  },
-
-  forgot: {
-    marginTop: 15,
-    alignItems: "center",
-  },
-
-  forgotText: {
-    color: "#3F51B5",
   },
 
   loginBtn: {

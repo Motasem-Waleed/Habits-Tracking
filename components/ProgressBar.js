@@ -2,9 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 
 export default function ProgressBar({ value = 0, target = 0 }) {
-  const safeTarget = Number.isFinite(target) && target > 0 ? target : 1;
-  const safeValue = Number.isFinite(value) ? value : 0;
-  const ratio = Math.max(0, Math.min(1, safeValue / safeTarget));
+  const ratio = Math.max(0, Math.min(1, value / target));
 
   return (
     <View style={styles.track}>

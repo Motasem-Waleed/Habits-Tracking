@@ -78,8 +78,8 @@ export default function StatisticsScreen({ route }) {
         [userId, start30, endToday]
       );
 
-      const completedPerDay = new Map();     // date -> count
-      const completedPerHabit = new Map();   // habitId -> count
+      const completedPerDay = new Map();     
+      const completedPerHabit = new Map();  
 
       for (const r of progress30) {
         if (!r?.date || !r?.habitId) continue;

@@ -169,23 +169,123 @@ export default function HabitDetailsScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#EEF2FF", padding: 16 },
-  card: { backgroundColor: "#fff", borderRadius: 18, padding: 16 },
-  title: { fontSize: 20, fontWeight: "900", color: "#111" },
-  meta: { marginTop: 6, color: "#666" },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 18, marginTop: 14 },
-  btn: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#4F46E5", alignItems: "center", justifyContent: "center" },
-  btnText: { color: "#fff", fontSize: 20, fontWeight: "900" },
-  valueText: { fontSize: 22, fontWeight: "900", color: "#111" },
-  streak: { marginTop: 10, fontWeight: "800", color: "#111" },
-  input: { marginTop: 12, backgroundColor: "#F3F4F6", borderRadius: 12, padding: 12, minHeight: 70 },
-  imageBtn: { marginTop: 12, backgroundColor: "#E0E7FF", padding: 12, borderRadius: 12, alignItems: "center" },
-  imageBtnText: { color: "#3730A3", fontWeight: "900" },
-  image: { marginTop: 12, width: "100%", height: 200, borderRadius: 14 },
-  actions: { flexDirection: "row", gap: 10, marginTop: 14 },
-  actionBtn: { flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center" },
-  saveBtn: { backgroundColor: "#16A34A" },
-  saveText: { color: "#fff", fontWeight: "900" },
-  editBtn: { backgroundColor: "#E5E7EB" },
-  editText: { color: "#111", fontWeight: "900" },
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "#EEF2FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 16,
+    width :"90%" ,
+  },
+
+  title: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#111",
+  },
+
+  meta: {
+    marginTop: 6,
+    color: "#666",
+  },
+
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 18,
+    marginTop: 14,
+  },
+
+  btn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#4F46E5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  btnText: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "900",
+  },
+
+  valueText: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#111",
+  },
+
+  streak: {
+    marginTop: 10,
+    fontWeight: "800",
+    color: "#111",
+  },
+
+  input: {
+    marginTop: 12,
+    minHeight: 70,
+    padding: 12,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+  },
+
+  imageBtn: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: "#E0E7FF",
+    borderRadius: 12,
+    alignItems: "center",
+  },
+
+  imageBtnText: {
+    color: "#3730A3",
+    fontWeight: "900",
+  },
+
+  image: {
+    marginTop: 12,
+    width: "100%",
+    height: 200,
+    borderRadius: 14,
+  },
+
+  actions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 14,
+  },
+
+  actionBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+
+  saveBtn: {
+    backgroundColor: "#16A34A",
+  },
+
+  saveText: {
+    color: "#fff",
+    fontWeight: "900",
+  },
+
+  editBtn: {
+    backgroundColor: "#E5E7EB",
+  },
+
+  editText: {
+    color: "#111",
+    fontWeight: "900",
+  },
 });

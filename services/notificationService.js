@@ -10,7 +10,6 @@ export async function ensureNotifSetup() {
     }
   }
 
-  // Android: الأفضل إنشاء channel
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("habits", {
       name: "Habits Reminders",

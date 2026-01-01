@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { HabitsProvider } from "./context/HabitContext";
 
 import Login from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
@@ -34,6 +35,7 @@ export default function App() {
   }
 
   return (
+    <HabitsProvider>
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={Login} />
@@ -41,9 +43,8 @@ export default function App() {
         <Stack.Screen name="Tabs" component={TabNav} />
         <Stack.Screen name="AddEditHabit" component={AddEditHabitScreen} />
         <Stack.Screen name="HabitDetails" component={HabitDetailsScreen} />
-
-        
       </Stack.Navigator>
     </NavigationContainer>
+    </HabitsProvider>
   );
 }

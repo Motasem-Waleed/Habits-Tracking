@@ -27,18 +27,15 @@ const RegisterScreen = ({ navigation }) => {
         const name = form.name.trim();
         const password = form.password;
 
-        // 1) check existing email in local DB
         const existing = await getFirst("SELECT * FROM users WHERE email = ?;", [email]);
         if (existing) {
           Alert.alert("Error", "Email already registered.");
           return;
         }
 
-        // 2) create account online (Firebase Auth)
         try {
           await createUserWithEmailAndPassword(auth, email, password);
         } catch (e) {
-          // رسائل مفيدة حسب الخطأ
           const code = e?.code || "";
           if (code.includes("auth/email-already-in-use")) {
             Alert.alert("Error", "This email is already used (Firebase).");
@@ -52,8 +49,7 @@ const RegisterScreen = ({ navigation }) => {
           return;
         }
 
-        // 3) save user locally (SQLite)
-        const userId = email; // أبسط طريقة حالياً لأن مشروعك يستخدم email كـ userId
+        const userId = email; 
         const now = Date.now();
 
         await run(
@@ -62,7 +58,6 @@ const RegisterScreen = ({ navigation }) => {
         );
 
 
-        // 4) go to Tabs and pass both email + name
         navigation.replace("Tabs", { email, name });
       })
       .catch((error) => {

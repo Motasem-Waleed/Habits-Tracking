@@ -44,7 +44,6 @@ export default function ProfileScreen({ route, navigation }) {
         [userId, u.name || name, email.trim().toLowerCase(), u.photoURL || null, now, now]
       );
     } catch (e) {
-      // ignore if offline
     }
   };
 

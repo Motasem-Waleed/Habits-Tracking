@@ -17,7 +17,6 @@ export async function upsertProgressLocal({ userId, habitId, dateStr, value, not
   const progressId = makeProgressId(habitId, dateStr);
   const updatedAt = Date.now();
 
-  // completed = وصل للهدف
   const safeTarget = Number.isFinite(target) ? target : 0;
   const safeValue = Number.isFinite(value) ? value : 0;
   const completed = safeTarget > 0 ? (safeValue >= safeTarget ? 1 : 0) : (safeValue > 0 ? 1 : 0);
@@ -60,7 +59,6 @@ export async function upsertProgressLocal({ userId, habitId, dateStr, value, not
 }
 
 export async function getStreakLocal({ userId, habitId }) {
-  // اجلب أيام مكتملة (آخر 90 يوم كفاية)
   const rows = await getAll(
     `SELECT date FROM progress
      WHERE userId=? AND habitId=? AND completed=1

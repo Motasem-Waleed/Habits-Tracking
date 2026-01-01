@@ -20,10 +20,8 @@ export async function syncNow(userIdEmail) {
     try {
       const data = t.data ? JSON.parse(t.data) : null;
 
-      // HABITS
       if (t.entity === "HABIT") {
         if (t.operation === "UPSERT") {
-          // conflict بسيط: لو remote.updatedAt أحدث نتجاهل
           const ref = doc(db, "users", emailKey, "habits", t.docId);
           const snap = await getDoc(ref);
           if (snap.exists()) {
@@ -46,7 +44,7 @@ export async function syncNow(userIdEmail) {
         }
       }
 
-      // PROGRESS
+      
       if (t.entity === "PROGRESS") {
         if (t.operation === "UPSERT") {
           const { habitId, date, ...rest } = data || {};
@@ -63,11 +61,9 @@ export async function syncNow(userIdEmail) {
         }
       }
 
-      // أي شيء غير معروف
       await markTaskSkipped(t.taskId);
     } catch (e) {
       console.log("Sync task failed:", t, e);
-      // لا نغيّر status حتى يعيد المحاولة لاحقاً
     }
   }
 }

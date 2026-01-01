@@ -1,11 +1,10 @@
-// screens/AddEditHabitScreen.js
 import { useEffect, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { addHabitLocal, updateHabitLocal, deleteHabitLocal } from "../services/habitService";
 import { scheduleHabitEveryHours, cancelScheduled } from "../services/notificationService";
 
 export default function AddEditHabitScreen({ route, navigation }) {
-  const userId = route?.params?.userId || route?.params?.email || "user@gmail.com";
+  const userId = route?.params?.userId || route?.params?.email ;
 
   const habitToEdit = route?.params?.habit || null;
   const habitId = route?.params?.habitId || habitToEdit?.habitId || null;
@@ -16,24 +15,23 @@ export default function AddEditHabitScreen({ route, navigation }) {
   const [frequency, setFrequency] = useState(habitToEdit?.frequency ?? "daily");
   const [target, setTarget] = useState(String(habitToEdit?.target ?? 1));
 
-  // reminder every X hours (مثال 4 ساعات)
   const [reminderHours, setReminderHours] = useState(
     String(habitToEdit?.reminderIntervalHours ?? 4)
   );
 
   useEffect(() => {
     if (habitToEdit) {
-      setTitle(habitToEdit.title ?? "");
-      setIcon(habitToEdit.icon ?? "✅");
-      setFrequency(habitToEdit.frequency ?? "daily");
-      setTarget(String(habitToEdit.target ?? 1));
-      setReminderHours(String(habitToEdit.reminderIntervalHours ?? 4));
+      setTitle(habitToEdit.title);
+      setIcon(habitToEdit.icon );
+      setFrequency(habitToEdit.frequency );
+      setTarget(String(habitToEdit.target ));
+      setReminderHours(String(habitToEdit.reminderIntervalHours));
     } else if (!isEdit) {
       setTitle("");
-      setIcon("✅");
-      setFrequency("daily");
-      setTarget("1");
-      setReminderHours("4");
+      setIcon("");
+      setFrequency("");
+      setTarget("");
+      setReminderHours("");
     }
   }, [habitToEdit, habitId, isEdit]);
 
@@ -61,16 +59,16 @@ export default function AddEditHabitScreen({ route, navigation }) {
       title: title.trim(),
       icon: icon.trim() || "✅",
       frequency: normalizeFrequency(frequency),
-      target: Number(target) || 0,
-      reminderIntervalHours: hours,
+      target: Number(target) || 1,
+      reminderIntervalHours: hours ,
     };
 
     try {
       if (isEdit) {
-        // cancel old notification to avoid duplicates
+        
         await cancelScheduled(habitToEdit?.notificationId);
 
-        // schedule new if hours > 0
+        
         let notifId = null;
         if (hours > 0) {
           notifId = await scheduleHabitEveryHours({
@@ -87,13 +85,11 @@ export default function AddEditHabitScreen({ route, navigation }) {
 
         Alert.alert("Done", "Habit updated.");
       } else {
-        // 1) add habit first to get habitId
         const newHabitId = await addHabitLocal(userId, {
           ...baseData,
           notificationId: null,
         });
 
-        // 2) schedule notification and save id
         let notifId = null;
         if (hours > 0) {
           notifId = await scheduleHabitEveryHours({
@@ -103,7 +99,6 @@ export default function AddEditHabitScreen({ route, navigation }) {
           });
         }
 
-        // 3) update habit with notificationId
         await updateHabitLocal(userId, newHabitId, {
           ...baseData,
           notificationId: notifId,
@@ -112,7 +107,6 @@ export default function AddEditHabitScreen({ route, navigation }) {
         Alert.alert("Done", "Habit added.");
       }
 
-      // ✅ أبسط حل: رجوع للشاشة السابقة بدون مشاكل navigation
       navigation.goBack();
     } catch (e) {
       console.log("Save habit error:", e);
@@ -129,13 +123,11 @@ export default function AddEditHabitScreen({ route, navigation }) {
 
   const del = async () => {
     try {
-      // cancel scheduled notification if exists
       await cancelScheduled(habitToEdit?.notificationId);
 
       await deleteHabitLocal(userId, habitId);
       Alert.alert("Done", "Habit deleted.");
 
-      // ✅ أبسط حل: رجوع للشاشة السابقة
       navigation.goBack();
     } catch (e) {
       console.log("Delete habit error:", e);
